@@ -25,7 +25,13 @@ app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=60 * 60
 
 @app.on_event("startup")
 def _startup():
-    db.init_db()
+    # Never let a DB hiccup crash the app (it would fail Railway's healthcheck).
+    # The table is also ensured lazily on first write.
+    try:
+        db.init_db()
+        print("[startup] DB initialised", flush=True)
+    except Exception as e:
+        print(f"[startup] DB init deferred: {e}", flush=True)
 
 
 def _is_authed(request: Request) -> bool:
