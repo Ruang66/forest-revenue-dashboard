@@ -1,0 +1,126 @@
+"""FE Revenue Dashboard — FastAPI backend.
+
+Serves the dashboard with a login gate (session cookie + sign-out) and a JSON API
+that persists the full dashboard state to Postgres.
+"""
+import os
+import secrets
+
+from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
+
+import db
+
+# ── Config ───────────────────────────────────────────────
+APP_USERNAME = os.environ.get("FE_USERNAME", "Forest")
+APP_PASSWORD = os.environ.get("FE_PASSWORD", "F@rest1!136")
+SESSION_SECRET = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
+INDEX_PATH = os.path.join(os.path.dirname(__file__), "index.html")
+
+app = FastAPI(title="FE Revenue Dashboard")
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=60 * 60 * 24 * 30)
+
+
+@app.on_event("startup")
+def _startup():
+    db.init_db()
+
+
+def _is_authed(request: Request) -> bool:
+    return request.session.get("user") == APP_USERNAME
+
+
+LOGIN_PAGE = """<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forest Energy — Sign In</title>
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ margin:0; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+         background:#0d2830; display:flex; min-height:100vh; align-items:center; justify-content:center; }}
+  .card {{ background:#fff; padding:40px 36px; border-radius:14px; width:340px;
+          box-shadow:0 20px 50px rgba(0,0,0,.35); }}
+  .logo {{ display:flex; align-items:center; gap:10px; margin-bottom:24px; }}
+  .logo-title {{ font-weight:700; color:#114d5d; font-size:18px; line-height:1.1; }}
+  .logo-sub {{ color:#8ca6ae; font-size:12px; }}
+  label {{ display:block; font-size:13px; color:#46717e; margin:14px 0 6px; }}
+  input {{ width:100%; padding:11px 12px; border:1px solid #dde4e6; border-radius:8px; font-size:14px; }}
+  input:focus {{ outline:none; border-color:#114d5d; }}
+  button {{ width:100%; margin-top:22px; padding:12px; background:#114d5d; color:#fff; border:none;
+           border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; }}
+  button:hover {{ background:#46717e; }}
+  .err {{ color:#e05c5c; font-size:13px; margin-top:14px; text-align:center; {err_display} }}
+</style></head>
+<body>
+  <form class="card" method="post" action="/login">
+    <div class="logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="16" fill="#114d5d"/>
+        <path d="M8 22 L16 8 L24 22 Z" fill="#26f0a3" opacity="0.9"/>
+        <rect x="14" y="18" width="4" height="5" fill="#0d2830"/>
+      </svg>
+      <div><div class="logo-title">Forest Energy</div><div class="logo-sub">Revenue Dashboard</div></div>
+    </div>
+    <label>Username</label>
+    <input name="username" autocomplete="username" autofocus required>
+    <label>Password</label>
+    <input name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Sign In</button>
+    <div class="err">Incorrect username or password</div>
+  </form>
+</body></html>"""
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    if _is_authed(request):
+        return RedirectResponse("/", status_code=302)
+    return HTMLResponse(LOGIN_PAGE.format(err_display="display:none;"))
+
+
+@app.post("/login")
+def login_submit(request: Request, username: str = Form(...), password: str = Form(...)):
+    ok_user = secrets.compare_digest(username, APP_USERNAME)
+    ok_pass = secrets.compare_digest(password, APP_PASSWORD)
+    if ok_user and ok_pass:
+        request.session["user"] = APP_USERNAME
+        return RedirectResponse("/", status_code=302)
+    return HTMLResponse(LOGIN_PAGE.format(err_display=""), status_code=401)
+
+
+@app.get("/logout")
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=302)
+
+
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request):
+    if not _is_authed(request):
+        return RedirectResponse("/login", status_code=302)
+    with open(INDEX_PATH, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
+
+
+@app.get("/api/data")
+def get_data(request: Request):
+    if not _is_authed(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return JSONResponse(db.get_state())
+
+
+@app.post("/api/data")
+async def post_data(request: Request):
+    if not _is_authed(request):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    payload = await request.json()
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Expected a JSON object")
+    db.save_state(payload)
+    return {"ok": True}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

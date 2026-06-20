@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forest Energy — Revenue Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+  :root {
+    --primary: #114d5d;
+    --primary-light: #46717e;
+    --grey-blue: #8ca6ae;
+    --light-bg: #dde4e6;
+    --dark-bg: #0d2830;
+    --green: #26f0a3;
+    --orange: #ffb977;
+    --white: #ffffff;
+    --danger: #e05c5c;
+    --confirmed: #26f0a3;
+    --pipeline: #ffb977;
+    --card-shadow: 0 2px 8px rgba(17,77,93,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Roboto', Arial, sans-serif; background: #f0f4f5; color: #1a1a1a; font-size: 14px; }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--dark-bg);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .header-logo { display: flex; align-items: center; gap: 12px; }
+  .header-logo svg { width: 32px; height: 32px; }
+  .header-title { color: var(--white); font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+  .header-subtitle { color: var(--grey-blue); font-size: 12px; margin-top: 1px; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* ── FY TABS ── */
+  .fy-bar {
+    background: var(--primary);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 44px;
+    overflow-x: auto;
+  }
+  .fy-tab {
+    padding: 6px 18px;
+    border-radius: 4px 4px 0 0;
+    color: rgba(255,255,255,0.65);
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .fy-tab:hover { color: white; background: rgba(255,255,255,0.1); }
+  .fy-tab.active { color: white; background: var(--dark-bg); }
+  .fy-tab-add {
+    padding: 4px 12px;
+    border-radius: 4px;
+    color: rgba(255,255,255,0.7);
+    font-size: 20px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    margin-left: 4px;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+  .fy-tab-add:hover { color: var(--green); background: rgba(255,255,255,0.1); }
+
+  /* ── MAIN LAYOUT ── */
+  .main { padding: 20px 28px; width: 100%; }
+
+  /* ── KPI CARDS ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px 18px;
+    box-shadow: var(--card-shadow);
+    border-left: 4px solid var(--primary);
+    position: relative;
+  }
+  .kpi-card.green { border-left-color: #26f0a3; }
+  .kpi-card.orange { border-left-color: var(--orange); }
+  .kpi-card.teal { border-left-color: var(--primary-light); }
+  .kpi-label { font-size: 11px; color: var(--grey-blue); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .kpi-value { font-size: 22px; font-weight: 700; color: var(--primary); line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--grey-blue); margin-top: 4px; }
+
+  /* ── CHARTS ROW ── */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .chart-card {
+    background: white;
+    border-radius: 8px;
+    padding: 18px 20px;
+    box-shadow: var(--card-shadow);
+  }
+  .chart-card.wide { grid-column: span 1; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 14px; }
+  .chart-wrap { position: relative; }
+
+  .charts-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title { font-size: 15px; font-weight: 600; color: var(--primary); }
+
+  /* ── FILTER BAR ── */
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .filter-bar select, .filter-bar input {
+    padding: 6px 10px; border: 1px solid var(--light-bg); border-radius: 5px;
+    font-size: 13px; color: #333; background: white; outline: none;
+    font-family: inherit;
+  }
+  .filter-bar select:focus, .filter-bar input:focus { border-color: var(--primary); }
+
+  /* ── TABS ── */
+  .tab-row { display: flex; gap: 0; border-bottom: 2px solid var(--light-bg); margin-bottom: 14px; }
+  .tab-btn {
+    padding: 8px 20px; font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; background: none; color: var(--grey-blue);
+    border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
+  }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab-btn:hover:not(.active) { color: var(--primary-light); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: var(--card-shadow); }
+  table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+  thead th {
+    background: var(--primary); color: white; padding: 10px 12px;
+    text-align: left; font-weight: 500; white-space: nowrap; font-size: 12px;
+  }
+  thead th:first-child { border-radius: 8px 0 0 0; }
+  thead th:last-child { border-radius: 0 8px 0 0; }
+  tbody tr { border-bottom: 1px solid #f0f4f5; transition: background 0.1s; }
+  tbody tr:hover { background: #f7fafb; }
+  tbody td { padding: 9px 12px; vertical-align: middle; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-confirmed { background: rgba(38,240,163,0.15); color: #0a7a52; }
+  .badge-pipeline { background: rgba(255,185,119,0.2); color: #b06a00; }
+  .badge-location { background: var(--light-bg); color: var(--primary); }
+  .np-positive { color: #0a7a52; font-weight: 600; }
+  .np-negative { color: var(--danger); font-weight: 600; }
+  .variance-over { color: #0a7a52; }
+  .variance-under { color: var(--danger); }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; font-family: inherit; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: #0d3d4a; }
+  .btn-green { background: var(--green); color: var(--dark-bg); }
+  .btn-green:hover { background: #1dd48e; }
+  .btn-outline { background: white; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-outline:hover { background: var(--light-bg); }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover { background: #c44; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { padding: 4px 8px; font-size: 14px; background: none; color: var(--grey-blue); border: none; cursor: pointer; border-radius: 4px; }
+  .btn-icon:hover { background: var(--light-bg); color: var(--primary); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(13,40,48,0.6);
+    z-index: 200; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 10px; padding: 28px; width: 600px;
+    max-width: 95vw; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--primary); margin-bottom: 20px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--light-bg); }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: span 2; }
+  label { font-size: 12px; font-weight: 500; color: var(--primary-light); }
+  input[type=text], input[type=number], select, textarea {
+    padding: 8px 10px; border: 1px solid var(--light-bg); border-radius: 5px;
+    font-size: 13px; font-family: inherit; outline: none; transition: border 0.15s;
+    color: #1a1a1a;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+  .section-divider { grid-column: span 2; border: none; border-top: 1px solid var(--light-bg); margin: 4px 0; }
+  .section-label { grid-column: span 2; font-size: 12px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+  /* ── MONTHLY GRID ── */
+  .monthly-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .monthly-grid input { font-size: 12px; padding: 6px 8px; }
+  .month-label { font-size: 11px; color: var(--grey-blue); margin-bottom: 2px; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 40px; color: var(--grey-blue); }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* ── TOOLTIP ── */
+  [title] { cursor: help; }
+
+  /* ── FY HEADER ── */
+  .fy-info-bar {
+    display: flex; align-items: center; gap: 16px;
+    background: white; border-radius: 8px; padding: 12px 18px;
+    box-shadow: var(--card-shadow); margin-bottom: 20px;
+    border-left: 4px solid var(--primary);
+  }
+  .fy-info-year { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .fy-info-period { font-size: 13px; color: var(--grey-blue); }
+  .fy-info-actions { margin-left: auto; display: flex; gap: 8px; }
+
+  /* ── DELETE FY ── */
+  .delete-fy-btn { color: var(--danger); font-size: 12px; cursor: pointer; background: none; border: none; padding: 4px 8px; border-radius: 4px; }
+  .delete-fy-btn:hover { background: rgba(224,92,92,0.1); }
+
+  @media (max-width: 1200px) {
+    .kpi-row { grid-template-columns: repeat(3, 1fr); }
+    .charts-row { grid-template-columns: 1fr 1fr; }
+    .charts-row .chart-card:first-child { grid-column: span 2; }
+  }
+  @media (max-width: 768px) {
+    .main { padding: 14px; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .charts-row, .charts-row2 { grid-template-columns: 1fr; }
+    .charts-row .chart-card:first-child { grid-column: span 1; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: span 1; }
+    .section-divider, .section-label { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#114d5d"/>
+      <path d="M8 22 L16 8 L24 22 Z" fill="#26f0a3" opacity="0.9"/>
+      <rect x="14" y="18" width="4" height="5" fill="#0d2830"/>
+    </svg>
+    <div>
+      <div class="header-title">Forest Energy</div>
+      <div class="header-subtitle">Revenue Dashboard</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-outline btn-sm" onclick="exportData()">Export JSON</button>
+    <button class="btn btn-green btn-sm" onclick="openAddProject()">+ Add Project</button>
+    <button class="btn btn-outline btn-sm" onclick="window.location.href='/logout'">Sign Out</button>
+  </div>
+</div>
+
+<!-- FY TABS -->
+<div class="fy-bar" id="fyBar"></div>
+
+<!-- MAIN -->
+<div class="main" id="mainContent"></div>
+
+<!-- ADD/EDIT PROJECT MODAL -->
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Add Project</div>
+    <div class="form-grid" id="projectForm">
+      <div class="section-label">Project Info</div>
+
+      <div class="form-group full">
+        <label>Project Name *</label>
+        <input type="text" id="f_name" placeholder="e.g. Advetech Phase 2">
+      </div>
+      <div class="form-group">
+        <label>Project Number</label>
+        <input type="text" id="f_proj_num" placeholder="e.g. 27010">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f_status">
+          <option value="pipeline">Pipeline</option>
+          <option value="confirmed">Confirmed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Project Value (ZAR excl. VAT) *</label>
+        <input type="number" id="f_proj_value" placeholder="0" min="0" step="1000">
+      </div>
+      <div class="form-group">
+        <label>Quarter Closed</label>
+        <select id="f_quarter">
+          <option value="Q1 (March, April, May)">Q1 (March, April, May)</option>
+          <option value="Q2 (June, July, Aug)">Q2 (June, July, Aug)</option>
+          <option value="Q3 (Sept, Oct, Nov)">Q3 (Sept, Oct, Nov)</option>
+          <option value="Q4 (Dec, Jan, Feb)">Q4 (Dec, Jan, Feb)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="f_location" placeholder="e.g. Cape Town">
+      </div>
+      <div class="form-group">
+        <label>Lead Source</label>
+        <select id="f_lead_source">
+          <option value="">-- Select --</option>
+          <option value="Existing Client">Existing Client</option>
+          <option value="Direct Lead">Direct Lead</option>
+          <option value="Channel Partner">Channel Partner</option>
+          <option value="Consulting Engineer/Tender">Consulting Engineer/Tender</option>
+          <option value="Tender">Tender</option>
+          <option value="IPP">IPP</option>
+          <option value="IGEN">IGEN</option>
+          <option value="Referral">Referral</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>PV Size (kWp)</label>
+        <input type="number" id="f_pv_kw" placeholder="0" min="0" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>BESS Size (kWh)</label>
+        <input type="number" id="f_bess_kwh" placeholder="0" min="0" step="0.1">
+      </div>
+      <div class="form-group" id="winProbGroup">
+        <label>Win Probability (%)</label>
+        <input type="number" id="f_win_prob" placeholder="50" min="0" max="100">
+      </div>
+
+      <hr class="section-divider">
+      <div class="section-label">Financials (Confirmed Projects)</div>
+
+      <div class="form-group">
+        <label>Costed NP (ZAR)</label>
+        <input type="number" id="f_costed_np" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Actual NP (ZAR)</label>
+        <input type="number" id="f_actual_np" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>PM and Engineering Cost (ZAR)</label>
+        <input type="number" id="f_pm_eng" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Commissioning Cost (ZAR)</label>
+        <input type="number" id="f_commissioning" placeholder="0">
+      </div>
+
+      <hr class="section-divider">
+      <div class="section-label">Revenue Recognition by Month</div>
+      <div class="form-group full">
+        <div class="monthly-grid" id="monthlyInputs"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('projectModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD FY MODAL -->
+<div class="modal-overlay" id="fyModal">
+  <div class="modal" style="width:380px">
+    <div class="modal-title">Add Financial Year</div>
+    <div class="form-group">
+      <label>Financial Year Label</label>
+      <input type="text" id="f_fy_name" placeholder="e.g. FY28">
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Period</label>
+      <input type="text" id="f_fy_period" placeholder="e.g. March 2027 - Feb 2028">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('fyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFY()">Add Year</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="width:360px">
+    <div class="modal-title" style="color:var(--danger)">Delete Project?</div>
+    <p style="color:#555;font-size:14px;margin-bottom:6px">This cannot be undone.</p>
+    <p style="font-weight:600;color:#333" id="deleteProjectName"></p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  SEED DATA — FY27
+// ─────────────────────────────────────────
+const SEED = {
+  "FY26": {
+    label: "FY26",
+    period: "March 2025 - Feb 2026",
+    projects: [
+      {"id":"fy26_1","name":"Workspace Group","proj_num":"FES26001","proj_value":740745,"pv_kw":70,"bess_kwh":0,"lead_source":"Bank Referral","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"March":740745},"total_income":740745,"actual_np_pct":17.28,"actual_np":128012.28,"costed_np":123457.5,"costed_np_margin":16.67,"under_over":4554.78,"np_rw":1.76,"pm_eng":24000,"commissioning_cost":18000},
+      {"id":"fy26_2","name":"KWV","proj_num":"26014","proj_value":6770552.42,"pv_kw":1002,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"April":6770552.42},"total_income":6770552.42,"actual_np_pct":11.46,"actual_np":775680.42,"costed_np":608888,"costed_np_margin":8.99,"under_over":166792.42,"np_rw":0.61,"pm_eng":88000,"commissioning_cost":49500},
+      {"id":"fy26_3","name":"Josdel Property","proj_num":"FES26003","proj_value":374404,"pv_kw":26,"bess_kwh":0,"lead_source":"Existing Client","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"April":374404},"total_income":374404,"actual_np_pct":11.45,"actual_np":42874.38,"costed_np":48835,"costed_np_margin":13.04,"under_over":-5960.62,"np_rw":1.88,"pm_eng":11500,"commissioning_cost":14375},
+      {"id":"fy26_4","name":"Advetec","proj_num":"26013","proj_value":9808678.72,"pv_kw":836,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"May":9808678.72},"total_income":9808678.72,"actual_np_pct":19.15,"actual_np":1877924.72,"costed_np":1240233,"costed_np_margin":12.64,"under_over":637691.72,"np_rw":1.48,"pm_eng":180000,"commissioning_cost":115000},
+      {"id":"fy26_5","name":"8 Cecil Road","proj_num":"26018","proj_value":785038.46,"pv_kw":50,"bess_kwh":60,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"May":785038.46},"total_income":785038.46,"actual_np_pct":13.25,"actual_np":104018.39,"costed_np":104077,"costed_np_margin":13.26,"under_over":-58.61,"np_rw":2.08,"pm_eng":12000,"commissioning_cost":12000},
+      {"id":"fy26_6","name":"The President Hotel","proj_num":"26019","proj_value":13433711,"pv_kw":149,"bess_kwh":1200,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q2 (June, July, Aug)","status":"confirmed","monthly":{"June":13433711},"total_income":13433711,"actual_np_pct":20.04,"actual_np":2692563,"costed_np":2000000,"costed_np_margin":14.89,"under_over":692563,"np_rw":13.42,"pm_eng":200000,"commissioning_cost":46000},
+      {"id":"fy26_7","name":"Moraletta","proj_num":"FES26004","proj_value":1065117.99,"pv_kw":0,"bess_kwh":200,"lead_source":"Consulting Engineer/Tender","location":"JHB","quarter":"Q2 (June, July, Aug)","status":"confirmed","monthly":{"July":1065118},"total_income":1065118,"actual_np_pct":16.04,"actual_np":170863,"costed_np":139078,"costed_np_margin":13.06,"under_over":31785,"pm_eng":11500,"commissioning_cost":11500},
+      {"id":"fy26_8","name":"Abacus Poplar","proj_num":"26021","proj_value":336692,"pv_kw":20,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q2 (June, July, Aug)","status":"confirmed","monthly":{"July":336692},"total_income":336692,"actual_np_pct":15.31,"actual_np":51539,"costed_np":39124,"costed_np_margin":11.62,"under_over":12415,"np_rw":1.96,"pm_eng":11500,"commissioning_cost":11500},
+      {"id":"fy26_9","name":"Abacus Dennesig","proj_num":"26022","proj_value":351457.83,"pv_kw":40,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q2 (June, July, Aug)","status":"confirmed","monthly":{"July":351457.83},"total_income":351457.83,"actual_np_pct":10.08,"actual_np":35425.83,"costed_np":45842,"costed_np_margin":13.04,"under_over":-10416.17,"np_rw":1.15,"pm_eng":11500,"commissioning_cost":11500},
+      {"id":"fy26_10","name":"Motus Tender","proj_num":"26023","proj_value":826468,"pv_kw":58,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"Nelspruit","quarter":"Q2 (June, July, Aug)","status":"confirmed","monthly":{"Aug":826468},"total_income":826468,"actual_np_pct":-3.63,"actual_np":-30015,"costed_np":72462,"costed_np_margin":8.77,"under_over":-102477,"np_rw":1.25,"pm_eng":15000,"commissioning_cost":10000},
+      {"id":"fy26_11","name":"StoneRidge Development","proj_num":"FES26005","proj_value":3529586,"pv_kw":412,"bess_kwh":0,"lead_source":"Website","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":3529586},"total_income":3529586,"actual_np_pct":19.51,"actual_np":688470,"costed_np":518797.8,"costed_np_margin":14.7,"under_over":169672.2,"np_rw":1.26,"pm_eng":40000,"commissioning_cost":20000},
+      {"id":"fy26_12","name":"Redstone Phase 1","proj_num":"FES26006","proj_value":1671284.45,"pv_kw":49,"bess_kwh":48,"lead_source":"Channel Partner","location":"Hartebees","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":1671284.45},"total_income":1671284.45,"actual_np_pct":16.02,"actual_np":267728.45,"costed_np":171519,"costed_np_margin":10.26,"under_over":96209.45,"np_rw":3.5,"pm_eng":20000,"commissioning_cost":10000},
+      {"id":"fy26_13","name":"Buh Rein","proj_num":"26029","proj_value":3590304,"pv_kw":343,"bess_kwh":0,"lead_source":"IPP","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Nov":3590304},"total_income":3590304,"actual_np_pct":17.6,"actual_np":631910,"costed_np":356087.35,"costed_np_margin":9.92,"under_over":275822.65,"np_rw":1.04,"pm_eng":85000,"commissioning_cost":20000},
+      {"id":"fy26_14","name":"Kayalami","proj_num":"26025","proj_value":1625191.5,"pv_kw":103,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":1625191.5},"total_income":1625191.5,"actual_np_pct":6.67,"actual_np":108328.02,"costed_np":178981.5,"costed_np_margin":11.01,"under_over":-70653.48,"np_rw":1.74,"pm_eng":40000,"commissioning_cost":20000},
+      {"id":"fy26_15","name":"Lonehill","proj_num":"26026","proj_value":938103.5,"pv_kw":68,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":938103.5},"total_income":938103.5,"actual_np_pct":16.17,"actual_np":151710.5,"costed_np":121431,"costed_np_margin":12.94,"under_over":30279.5,"np_rw":1.79,"pm_eng":40000,"commissioning_cost":20000},
+      {"id":"fy26_16","name":"Fourways","proj_num":"26028","proj_value":1500505,"pv_kw":146,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":1500505},"total_income":1500505,"actual_np_pct":20.29,"actual_np":304505.62,"costed_np":190731,"costed_np_margin":12.71,"under_over":113774.62,"np_rw":1.31,"pm_eng":40000,"commissioning_cost":20000},
+      {"id":"fy26_17","name":"Mooiplaas","proj_num":"26027","proj_value":862721.95,"pv_kw":72,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":862721.95},"total_income":862721.95,"actual_np_pct":18.54,"actual_np":159975.52,"costed_np":109528,"costed_np_margin":12.7,"under_over":50447.52,"np_rw":1.52,"pm_eng":20000,"commissioning_cost":10000},
+      {"id":"fy26_18","name":"Kuilsriver Golf","proj_num":"FES26010","proj_value":2202874,"pv_kw":113.75,"bess_kwh":48,"lead_source":"Tender","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":2202874},"total_income":2202874,"actual_np_pct":12.5,"actual_np":275356.41,"costed_np":287331.4,"costed_np_margin":13.04,"under_over":-11974.99,"np_rw":2.53,"pm_eng":20000,"commissioning_cost":15000},
+      {"id":"fy26_19","name":"Pioneer Plastics","proj_num":"FES26008","proj_value":4741335,"pv_kw":189,"bess_kwh":405,"lead_source":"Bank Referral","location":"JHB","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":4741335},"total_income":4741335,"actual_np_pct":13.13,"actual_np":622373,"costed_np":612365,"costed_np_margin":12.92,"under_over":10008,"np_rw":3.24,"pm_eng":30000,"commissioning_cost":15000},
+      {"id":"fy26_20","name":"Kinderhuis","proj_num":"26030","proj_value":700229.15,"pv_kw":79.98,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":700229.15},"total_income":700229.15,"actual_np_pct":13.15,"actual_np":92111.15,"costed_np":91308,"costed_np_margin":13.04,"under_over":803.15,"np_rw":1.14,"pm_eng":22500,"commissioning_cost":7500},
+      {"id":"fy26_21","name":"Olifantskop","proj_num":"FES26007","proj_value":807656,"pv_kw":32.24,"bess_kwh":72,"lead_source":"Existing Client","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":807656},"total_income":807656,"actual_np_pct":13.07,"actual_np":105579,"costed_np":105346,"costed_np_margin":13.04,"under_over":233,"np_rw":3.27,"pm_eng":22500,"commissioning_cost":9500},
+      {"id":"fy26_22","name":"Lonehill Imbune","proj_num":"26031","proj_value":11514173,"pv_kw":1454,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"JHB","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Oct":11514173},"total_income":11514173,"actual_np_pct":6.42,"actual_np":739493,"costed_np":1052913,"costed_np_margin":9.14,"under_over":-313420,"np_rw":0.72,"pm_eng":100000,"commissioning_cost":50000},
+      {"id":"fy26_23","name":"Neulux","proj_num":"FES26009","proj_value":2923505,"pv_kw":275,"bess_kwh":108,"lead_source":"Call Cold","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Nov":2923505},"total_income":2923505,"actual_np_pct":17.97,"actual_np":525232,"costed_np":368891,"costed_np_margin":12.62,"under_over":156341,"np_rw":1.34,"pm_eng":40000,"commissioning_cost":15000},
+      {"id":"fy26_24","name":"Bluegum","proj_num":"FES26011","proj_value":1950000,"pv_kw":145,"bess_kwh":120,"lead_source":"Call Cold","location":"Cape Town","quarter":"Q3 (Sept, Oct, Nov)","status":"confirmed","monthly":{"Nov":1950000},"total_income":1950000,"actual_np_pct":26.94,"actual_np":525378,"costed_np":252034,"costed_np_margin":12.92,"under_over":273344,"np_rw":1.74,"pm_eng":20000,"commissioning_cost":15000},
+      {"id":"fy26_25","name":"VC Grayston","proj_num":"FES26012","proj_value":3708000,"pv_kw":412,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q4 (Dec, Jan, Feb)","status":"confirmed","monthly":{"Dec":3708000},"total_income":3708000,"actual_np_pct":26.25,"actual_np":973529,"costed_np":484419,"costed_np_margin":13.06,"under_over":489110,"np_rw":1.18,"pm_eng":40000,"commissioning_cost":35000},
+      {"id":"fy26_26","name":"Altena Retirement","proj_num":"FES26013","proj_value":2359541,"pv_kw":143,"bess_kwh":132,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q4 (Dec, Jan, Feb)","status":"confirmed","monthly":{"Feb":2359541},"total_income":2359541,"actual_np_pct":9.86,"actual_np":232718.74,"costed_np":300089,"costed_np_margin":12.72,"under_over":-67370.26,"np_rw":2.1,"pm_eng":50000,"commissioning_cost":15000},
+      {"id":"fy26_27","name":"Blue Spaces","proj_num":"23165","proj_value":480000,"pv_kw":20,"bess_kwh":64,"lead_source":"Existing Client","location":"Cape Town","quarter":"Q4 (Dec, Jan, Feb)","status":"confirmed","monthly":{"Feb":480000},"total_income":480000,"actual_np_pct":16.67,"actual_np":80000,"costed_np":65000,"costed_np_margin":13.54,"under_over":15000,"np_rw":3.25,"pm_eng":5000,"commissioning_cost":5000},
+      {"id":"fy26_28","name":"Ryneke Wines","proj_num":"FES26014","proj_value":2402956,"pv_kw":104,"bess_kwh":240,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q4 (Dec, Jan, Feb)","status":"confirmed","monthly":{"Feb":2402956},"total_income":2402956,"actual_np_pct":11.5,"actual_np":276446,"costed_np":276446,"costed_np_margin":11.5,"under_over":0,"np_rw":2.66,"pm_eng":25000,"commissioning_cost":15000}
+    ]
+  },
+  "FY27": {
+    label: "FY27",
+    period: "March 2026 - Feb 2027",
+    projects: [
+      {"id":"fy27_1","name":"KWV Phase 2","proj_num":"26014 (b)","proj_value":1946205.36,"pv_kw":302,"bess_kwh":0,"lead_source":"Existing Client","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"March":1946205.36},"total_income":1946205.36,"actual_np_pct":25.16,"actual_np":489716.36,"costed_np":177485,"costed_np_margin":9.12,"under_over":312231.36,"np_rw":0.59,"pm_eng":90000,"commissioning_cost":15000},
+      {"id":"fy27_2","name":"Lower Long","proj_num":"27001","proj_value":1071810,"pv_kw":133.92,"bess_kwh":0,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"April":1071810},"total_income":1071810,"actual_np_pct":11.28,"actual_np":120887,"costed_np":120887,"costed_np_margin":11.28,"under_over":0,"np_rw":0.9,"pm_eng":25000,"commissioning_cost":15000},
+      {"id":"fy27_3","name":"Buh Rein Phase 2","proj_num":"26029 (b)","proj_value":362246,"pv_kw":32.24,"bess_kwh":0,"lead_source":"Existing Client","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"April":362246},"total_income":362246,"actual_np_pct":13.57,"actual_np":49150,"costed_np":35283,"costed_np_margin":9.74,"under_over":13867,"np_rw":1.09,"pm_eng":5000,"commissioning_cost":5000},
+      {"id":"fy27_4","name":"Cavalier","proj_num":"27002","proj_value":1918648.21,"pv_kw":217,"bess_kwh":0,"lead_source":"Tender","location":"Cape Town","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"April":1918648.21},"total_income":1918648.21,"actual_np_pct":13.2,"actual_np":253188.27,"costed_np":253188.27,"costed_np_margin":13.2,"under_over":0,"np_rw":1.17,"pm_eng":32500,"commissioning_cost":12500},
+      {"id":"fy27_5","name":"Advetech","proj_num":"27003","proj_value":8431000,"pv_kw":512,"bess_kwh":0,"lead_source":"IPP","location":"JHB","quarter":"Q1 (March, April, May)","status":"confirmed","monthly":{"May":8431000},"total_income":8431000,"actual_np_pct":16.04,"actual_np":1352529.45,"costed_np":1352529.45,"costed_np_margin":16.04,"under_over":0,"np_rw":2.64,"pm_eng":205000,"commissioning_cost":40000},
+      {"id":"fy27_6","name":"Mabeskraal","proj_num":"","proj_value":10173155,"pv_kw":1210,"bess_kwh":0,"lead_source":"Direct Lead","location":"North West","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":70},
+      {"id":"fy27_7","name":"Bardale","proj_num":"","proj_value":5700000,"pv_kw":377,"bess_kwh":456,"lead_source":"Existing Client","location":"Cape Town","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":70},
+      {"id":"fy27_8","name":"Stellenbosch Vineyards","proj_num":"","proj_value":5400000,"pv_kw":520,"bess_kwh":0,"lead_source":"Channel Partner","location":"Stellenbosch","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":50},
+      {"id":"fy27_9","name":"Langkoolf Bricks","proj_num":"","proj_value":11000000,"pv_kw":620,"bess_kwh":720,"lead_source":"Channel Partner","location":"","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":70},
+      {"id":"fy27_10","name":"Hazendeal BESS","proj_num":"","proj_value":5000000,"pv_kw":0,"bess_kwh":500,"lead_source":"Consulting Engineer/Tender","location":"Cape Town","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":80},
+      {"id":"fy27_11","name":"Istegen","proj_num":"","proj_value":9262493,"pv_kw":780,"bess_kwh":1008,"lead_source":"IGEN","location":"","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":50},
+      {"id":"fy27_12","name":"Shoneberg","proj_num":"","proj_value":16000000,"pv_kw":1000,"bess_kwh":2000,"lead_source":"Consulting Engineer/Tender","location":"","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":50},
+      {"id":"fy27_13","name":"Ituae","proj_num":"","proj_value":45000000,"pv_kw":1000,"bess_kwh":10000,"lead_source":"IGEN","location":"","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":50},
+      {"id":"fy27_14","name":"Coega Dairy","proj_num":"","proj_value":21413782,"pv_kw":537,"bess_kwh":2208,"lead_source":"Channel Partner","location":"Port Elizabeth","quarter":"Q2 (June, July, Aug)","status":"pipeline","monthly":{},"total_income":0,"win_prob":50},
+      {"id":"fy27_15","name":"Diemersfontein","proj_num":"","proj_value":15000000,"pv_kw":1000,"bess_kwh":1000,"lead_source":"IGEN","location":"Wellington","quarter":"Q3 (Sept, Oct, Nov)","status":"pipeline","monthly":{},"total_income":0,"win_prob":50}
+    ]
+  }
+};
+
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+let db = {};
+let activeFY = "FY26";
+let activeTab = "confirmed";
+let editingId = null;
+let deleteId = null;
+let charts = {};
+
+const MONTHS = ["March","April","May","June","July","Aug","Sept","Oct","Nov","Dec","Jan","Feb"];
+const STORAGE_KEY = "fe_dashboard_v2";
+
+async function loadDB() {
+  try {
+    const res = await fetch('/api/data', { credentials: 'same-origin' });
+    if (res.status === 401) { window.location.href = '/login'; return; }
+    const stored = await res.json();
+    if (stored && Object.keys(stored).length) {
+      db = stored;
+      // Inject any seed years not yet in the stored db
+      let changed = false;
+      Object.keys(SEED).forEach(fy => {
+        if (!db[fy]) { db[fy] = JSON.parse(JSON.stringify(SEED[fy])); changed = true; }
+      });
+      if (changed) await saveDB();
+      return;
+    }
+  } catch(e) { console.error('Load failed', e); }
+  // Empty database (first run) — seed it
+  db = JSON.parse(JSON.stringify(SEED));
+  await saveDB();
+}
+async function saveDB() {
+  try {
+    const res = await fetch('/api/data', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(db)
+    });
+    if (res.status === 401) { window.location.href = '/login'; }
+  } catch(e) { console.error('Save failed', e); }
+}
+function genId() { return 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+// ─────────────────────────────────────────
+//  FORMAT HELPERS
+// ─────────────────────────────────────────
+function fmt(n, decimals=0) {
+  if (n == null || isNaN(n)) return '—';
+  return 'R ' + Number(n).toLocaleString('en-ZA', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+}
+function fmtM(n) {
+  if (n == null || isNaN(n)) return '—';
+  if (Math.abs(n) >= 1e6) return 'R ' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return 'R ' + (n/1e3).toFixed(0) + 'k';
+  return 'R ' + n.toFixed(0);
+}
+function fmtPct(n) { return n == null || isNaN(n) ? '—' : n.toFixed(1) + '%'; }
+
+// ─────────────────────────────────────────
+//  FY TAB RENDER
+// ─────────────────────────────────────────
+function renderFYBar() {
+  const bar = document.getElementById('fyBar');
+  bar.innerHTML = Object.keys(db).map(fy =>
+    `<button class="fy-tab ${fy===activeFY?'active':''}" onclick="switchFY('${fy}')">${fy}</button>`
+  ).join('') + `<button class="fy-tab-add" onclick="openAddFY()" title="Add financial year">＋</button>`;
+}
+function switchFY(fy) { activeFY = fy; activeTab = 'confirmed'; renderAll(); }
+
+// ─────────────────────────────────────────
+//  COMPUTED STATS
+// ─────────────────────────────────────────
+function stats(fy) {
+  const projects = (db[fy] || {projects:[]}).projects;
+  const confirmed = projects.filter(p => p.status === 'confirmed');
+  const pipeline = projects.filter(p => p.status === 'pipeline');
+
+  const confirmedRev = confirmed.reduce((s,p) => s + (p.total_income||p.proj_value||0), 0);
+  const pipelineVal = pipeline.reduce((s,p) => s + (p.proj_value||0), 0);
+  const weightedPipeline = pipeline.reduce((s,p) => s + (p.proj_value||0)*(p.win_prob||50)/100, 0);
+  const totalPV = confirmed.reduce((s,p) => s + (p.pv_kw||0), 0);
+  const totalBESS = confirmed.reduce((s,p) => s + (p.bess_kwh||0), 0);
+
+  // NP budget vs actual
+  const withNP = confirmed.filter(p => p.costed_np != null || p.actual_np != null);
+  const totalCostedNP = withNP.reduce((s,p) => s + (p.costed_np||0), 0);
+  const totalActualNP = withNP.reduce((s,p) => s + (p.actual_np||0), 0);
+  const npVariance = totalActualNP - totalCostedNP;
+  const avgCostedNPPct = confirmedRev > 0 ? (totalCostedNP / confirmedRev) * 100 : 0;
+  const avgActualNPPct = confirmedRev > 0 ? (totalActualNP / confirmedRev) * 100 : 0;
+
+  // Monthly revenue
+  const monthly = {};
+  MONTHS.forEach(m => monthly[m] = 0);
+  confirmed.forEach(p => { if(p.monthly) MONTHS.forEach(m => { if(p.monthly[m]) monthly[m] += p.monthly[m]; }); });
+
+  const totalPMEng = confirmed.reduce((s,p) => s + (p.pm_eng||0), 0);
+
+  return { confirmed, pipeline, confirmedRev, pipelineVal, weightedPipeline, totalPV, totalBESS, monthly, all: projects,
+           totalCostedNP, totalActualNP, npVariance, avgCostedNPPct, avgActualNPPct, totalPMEng };
+}
+
+// ─────────────────────────────────────────
+//  MAIN RENDER
+// ─────────────────────────────────────────
+function renderAll() {
+  renderFYBar();
+  const fyData = db[activeFY] || {label:activeFY, period:'', projects:[]};
+  const s = stats(activeFY);
+  const main = document.getElementById('mainContent');
+
+  // Destroy old charts
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+
+  main.innerHTML = `
+    <!-- FY INFO BAR -->
+    <div class="fy-info-bar">
+      <div>
+        <div class="fy-info-year">${fyData.label}</div>
+        <div class="fy-info-period">${fyData.period || 'March – February'}</div>
+      </div>
+      <div class="fy-info-actions">
+        ${activeFY !== 'FY27' ? `<button class="delete-fy-btn" onclick="deleteFY('${activeFY}')">Delete Year</button>` : ''}
+        <button class="btn btn-green btn-sm" onclick="openAddProject()">+ Add Project</button>
+      </div>
+    </div>
+
+    <!-- KPI CARDS — ROW 1: Revenue + Pipeline -->
+    <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-bottom:12px">
+      <div class="kpi-card">
+        <div class="kpi-label">Confirmed Revenue</div>
+        <div class="kpi-value" style="font-size:18px">${fmtM(s.confirmedRev)}</div>
+        <div class="kpi-sub">${s.confirmed.length} project${s.confirmed.length!==1?'s':''}</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Pipeline Value</div>
+        <div class="kpi-value" style="font-size:18px">${fmtM(s.pipelineVal)}</div>
+        <div class="kpi-sub">Weighted: ${fmtM(s.weightedPipeline)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total PV (kWp)</div>
+        <div class="kpi-value">${s.totalPV.toLocaleString('en-ZA',{maximumFractionDigits:0})}</div>
+        <div class="kpi-sub">Confirmed projects</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Total BESS (kWh)</div>
+        <div class="kpi-value">${s.totalBESS.toLocaleString('en-ZA',{maximumFractionDigits:0})}</div>
+        <div class="kpi-sub">Confirmed projects</div>
+      </div>
+      <div class="kpi-card" style="border-left-color:#16e7cf">
+        <div class="kpi-label">PM and Engineering Fees</div>
+        <div class="kpi-value" style="font-size:18px">${fmtM(s.totalPMEng)}</div>
+        <div class="kpi-sub">Confirmed projects · FY total</div>
+      </div>
+    </div>
+
+    <!-- KPI CARDS — ROW 2: NP Budget vs Actual -->
+    <div class="kpi-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+      <div class="kpi-card teal">
+        <div class="kpi-label">Costed (Budgeted) NP</div>
+        <div class="kpi-value" style="font-size:18px">${fmtM(s.totalCostedNP)}</div>
+        <div class="kpi-sub">${fmtPct(s.avgCostedNPPct)} avg margin</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Actual NP</div>
+        <div class="kpi-value" style="font-size:18px">${fmtM(s.totalActualNP)}</div>
+        <div class="kpi-sub">${fmtPct(s.avgActualNPPct)} avg margin</div>
+      </div>
+      <div class="kpi-card ${s.npVariance >= 0 ? 'green' : ''}" style="${s.npVariance < 0 ? 'border-left-color:var(--danger)' : ''}">
+        <div class="kpi-label">NP Variance (vs Budget)</div>
+        <div class="kpi-value" style="font-size:18px;color:${s.npVariance >= 0 ? '#0a7a52' : 'var(--danger)'}">${s.npVariance >= 0 ? '+' : ''}${fmtM(s.npVariance)}</div>
+        <div class="kpi-sub">${s.npVariance >= 0 ? 'Above budget' : 'Below budget'}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg NP Margin</div>
+        <div class="kpi-value">${fmtPct(s.avgActualNPPct)}</div>
+        <div class="kpi-sub">Budgeted: ${fmtPct(s.avgCostedNPPct)}</div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 1: Monthly + compact overviews -->
+    <div style="display:grid;grid-template-columns:3fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="chart-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="chart-title" style="margin-bottom:0">Monthly Revenue Recognition (Confirmed)</div>
+          <div style="display:flex;gap:12px;font-size:11px;font-weight:500">
+            <span style="color:#8ca6ae">Q1</span><span style="color:#46717e">Q2</span><span style="color:#114d5d">Q3</span><span style="color:#0d2830">Q4</span>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartMonthly" height="100"></canvas></div>
+      </div>
+      <div style="display:grid;grid-template-rows:1fr 1fr;gap:14px">
+        <div class="chart-card" style="padding:14px 16px">
+          <div class="chart-title" style="margin-bottom:10px">Lead Sources</div>
+          <div id="leadMini"></div>
+        </div>
+        <div class="chart-card" style="padding:14px 16px">
+          <div class="chart-title" style="margin-bottom:10px">Project Type Split</div>
+          <div id="typeMini"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUARTER SUMMARY CARDS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px" id="quarterSummary"></div>
+
+    <!-- CHARTS ROW 2: NP Budget vs Actual (full width) -->
+    <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-title">Net Profit: Budgeted vs Actual — per Project (Confirmed)</div>
+      <div class="chart-wrap"><canvas id="chartNP" height="70"></canvas></div>
+    </div>
+
+    <!-- CHARTS ROW 3: Quarter -->
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-title">Revenue vs Pipeline by Quarter</div>
+      <div class="chart-wrap"><canvas id="chartQuarter" height="60"></canvas></div>
+    </div>
+
+    <!-- PROJECT TABLES -->
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="section-header">
+        <div class="section-title">Projects</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="text" id="searchInput" placeholder="Search projects..." style="width:180px" oninput="filterProjects()">
+          <select id="filterLead" onchange="filterProjects()" style="font-size:13px;padding:6px 10px;border:1px solid var(--light-bg);border-radius:5px">
+            <option value="">All Lead Sources</option>
+            ${[...new Set(s.all.map(p=>p.lead_source).filter(Boolean))].map(l=>`<option value="${l}">${l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="tab-row">
+        <button class="tab-btn ${activeTab==='confirmed'?'active':''}" onclick="switchTab('confirmed')">Confirmed (${s.confirmed.length})</button>
+        <button class="tab-btn ${activeTab==='pipeline'?'active':''}" onclick="switchTab('pipeline')">Pipeline (${s.pipeline.length})</button>
+        <button class="tab-btn ${activeTab==='all'?'active':''}" onclick="switchTab('all')">All (${s.all.length})</button>
+      </div>
+      <div id="projectTable"></div>
+    </div>
+  `;
+
+  buildCharts(s);
+  renderTable(s);
+}
+
+// ─────────────────────────────────────────
+//  CHARTS
+// ─────────────────────────────────────────
+function buildCharts(s) {
+  const pColor = '#114d5d';
+  const gColor = '#26f0a3';
+  const oColor = '#ffb977';
+  const lColor = '#46717e';
+  const greys = ['#114d5d','#46717e','#8ca6ae','#26f0a3','#ffb977','#16e7cf','#6ea1b1','#0d2830','#dde4e6','#488a9a'];
+
+  // Quarter backgrounds: Q1=0-2, Q2=3-5, Q3=6-8, Q4=9-11
+  const qBands = [
+    {from:0,to:2,color:'rgba(140,166,174,0.10)',label:'Q1'},
+    {from:3,to:5,color:'rgba(70,113,126,0.10)',label:'Q2'},
+    {from:6,to:8,color:'rgba(17,77,93,0.10)',label:'Q3'},
+    {from:9,to:11,color:'rgba(13,40,48,0.10)',label:'Q4'},
+  ];
+  const quarterBandPlugin = {
+    id: 'quarterBands',
+    beforeDraw(chart) {
+      const {ctx, chartArea:{left,right,top,bottom}, scales:{x}} = chart;
+      if (!x) return;
+      qBands.forEach(({from,to,color,label}) => {
+        const x0 = x.getPixelForValue(from) - x.width/(MONTHS.length*2);
+        const x1 = x.getPixelForValue(to) + x.width/(MONTHS.length*2);
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.fillRect(x0, top, x1-x0, bottom-top);
+        ctx.fillStyle = 'rgba(70,113,126,0.4)';
+        ctx.font = '11px Roboto,Arial,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, (x0+x1)/2, top+12);
+        ctx.restore();
+      });
+    }
+  };
+
+  // Monthly Revenue
+  const qColors = ['#8ca6ae','#8ca6ae','#8ca6ae','#46717e','#46717e','#46717e','#114d5d','#114d5d','#114d5d','#0d2830','#0d2830','#0d2830'];
+  charts.monthly = new Chart(document.getElementById('chartMonthly'), {
+    type: 'bar',
+    plugins: [quarterBandPlugin],
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Revenue (ZAR)',
+        data: MONTHS.map(m => s.monthly[m]),
+        backgroundColor: MONTHS.map((m,i) => s.monthly[m] > 0 ? qColors[i] : 'rgba(0,0,0,0.04)'),
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => fmtM(ctx.raw) } }
+      },
+      scales: {
+        y: { ticks: { callback: v => fmtM(v), font:{size:11} }, grid: { color:'#f0f4f5' } },
+        x: { ticks: { font:{size:11} }, grid: { display: false } }
+      },
+      layout: { padding: { top: 8 } }
+    }
+  });
+
+  // Quarter summary cards
+  const QUARTERS = [
+    {key:'Q1 (March, April, May)', label:'Q1', months:['March','April','May'], color:'#8ca6ae'},
+    {key:'Q2 (June, July, Aug)',   label:'Q2', months:['June','July','Aug'],   color:'#46717e'},
+    {key:'Q3 (Sept, Oct, Nov)',    label:'Q3', months:['Sept','Oct','Nov'],    color:'#114d5d'},
+    {key:'Q4 (Dec, Jan, Feb)',     label:'Q4', months:['Dec','Jan','Feb'],     color:'#0d2830'},
+  ];
+  const qSummaryEl = document.getElementById('quarterSummary');
+  if (qSummaryEl) {
+    qSummaryEl.innerHTML = QUARTERS.map(q => {
+      const qConfirmed = s.confirmed.filter(p => p.quarter === q.key);
+      const qPipeline  = s.pipeline.filter(p => p.quarter === q.key);
+      const qRev   = q.months.reduce((a,m) => a + (s.monthly[m]||0), 0);
+      const qPV    = qConfirmed.reduce((a,p) => a + (p.pv_kw||0), 0) + qPipeline.reduce((a,p) => a + (p.pv_kw||0), 0);
+      const qBESS  = qConfirmed.reduce((a,p) => a + (p.bess_kwh||0), 0) + qPipeline.reduce((a,p) => a + (p.bess_kwh||0), 0);
+      const qNP    = qConfirmed.reduce((a,p) => a + (p.actual_np||p.costed_np||0), 0);
+      const qPMEng = qConfirmed.reduce((a,p) => a + (p.pm_eng||0), 0);
+      const cCount = qConfirmed.length;
+      const pCount = qPipeline.length;
+      return `
+        <div class="chart-card" style="border-left:4px solid ${q.color};padding:16px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:700;color:${q.color}">${q.label}</div>
+            <div style="font-size:11px;color:var(--grey-blue)">${q.months[0]} – ${q.months[2]}</div>
+          </div>
+          <div style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:2px">${fmtM(qRev)}</div>
+          <div style="font-size:11px;color:var(--grey-blue);margin-bottom:10px">Revenue recognised${qNP > 0 ? ` · NP ${fmtM(qNP)}` : ''}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+            <div style="background:#f7fafb;border-radius:5px;padding:7px 10px">
+              <div style="font-size:10px;color:var(--grey-blue);font-weight:500;text-transform:uppercase;letter-spacing:0.4px">PV (kWp)</div>
+              <div style="font-size:15px;font-weight:700;color:var(--primary)">${qPV > 0 ? qPV.toLocaleString('en-ZA',{maximumFractionDigits:0}) : '—'}</div>
+            </div>
+            <div style="background:#f7fafb;border-radius:5px;padding:7px 10px">
+              <div style="font-size:10px;color:var(--grey-blue);font-weight:500;text-transform:uppercase;letter-spacing:0.4px">BESS (kWh)</div>
+              <div style="font-size:15px;font-weight:700;color:var(--primary)">${qBESS > 0 ? qBESS.toLocaleString('en-ZA',{maximumFractionDigits:0}) : '—'}</div>
+            </div>
+            <div style="background:#f0faf6;border-radius:5px;padding:7px 10px;border:1px solid rgba(22,231,207,0.2)">
+              <div style="font-size:10px;color:var(--grey-blue);font-weight:500;text-transform:uppercase;letter-spacing:0.4px">PM+Eng</div>
+              <div style="font-size:15px;font-weight:700;color:var(--primary)">${qPMEng > 0 ? fmtM(qPMEng) : '—'}</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--grey-blue)">${cCount} confirmed${pCount > 0 ? ` · ${pCount} pipeline` : ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // Lead Source mini list — confirmed only
+  const leadMap = {};
+  s.confirmed.forEach(p => { const l = p.lead_source||'Unknown'; leadMap[l] = (leadMap[l]||0) + 1; });
+  const leadTotal = s.confirmed.length;
+  const leadEl = document.getElementById('leadMini');
+  if (leadEl) {
+    const sorted = Object.entries(leadMap).sort((a,b)=>b[1]-a[1]);
+    leadEl.innerHTML = sorted.map(([l,cnt]) => {
+      const pct = Math.round(cnt/leadTotal*100);
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="flex:1;font-size:12px;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l}</div>
+        <div style="width:80px;height:6px;background:#f0f4f5;border-radius:3px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:var(--primary);border-radius:3px"></div>
+        </div>
+        <div style="font-size:11px;color:var(--grey-blue);width:28px;text-align:right">${cnt}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Type split mini — confirmed only
+  const pvOnly = s.confirmed.filter(p=>p.pv_kw>0&&!p.bess_kwh).length;
+  const bessOnly = s.confirmed.filter(p=>!p.pv_kw&&p.bess_kwh>0).length;
+  const hybrid = s.confirmed.filter(p=>p.pv_kw>0&&p.bess_kwh>0).length;
+  const typeEl = document.getElementById('typeMini');
+  if (typeEl) {
+    const types = [['Solar Only', pvOnly, pColor],['BESS Only', bessOnly, oColor],['Hybrid', hybrid, gColor]];
+    typeEl.innerHTML = types.map(([label, cnt, color]) => {
+      const pct = s.confirmed.length > 0 ? Math.round(cnt/s.confirmed.length*100) : 0;
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0"></div>
+        <div style="flex:1;font-size:12px;color:#444">${label}</div>
+        <div style="width:60px;height:6px;background:#f0f4f5;border-radius:3px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div>
+        </div>
+        <div style="font-size:11px;color:var(--grey-blue);width:28px;text-align:right">${cnt}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // NP Budgeted vs Actual — full width per project
+  const npProjects = s.confirmed.filter(p => p.costed_np != null || p.actual_np != null);
+  charts.np = new Chart(document.getElementById('chartNP'), {
+    type: 'bar',
+    data: {
+      labels: npProjects.map(p => p.name.length > 16 ? p.name.slice(0,14)+'…' : p.name),
+      datasets: [
+        { label: 'Budgeted NP', data: npProjects.map(p=>p.costed_np||0), backgroundColor: lColor, borderRadius: 3, barPercentage: 0.7 },
+        { label: 'Actual NP', data: npProjects.map(p=>p.actual_np||0),
+          backgroundColor: npProjects.map(p => (p.actual_np||0) >= (p.costed_np||0) ? gColor : '#e05c5c'),
+          borderRadius: 3, barPercentage: 0.7 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels:{font:{size:12},boxWidth:14,padding:16} },
+        tooltip: { callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${fmtM(ctx.raw)}`,
+          afterBody: (items) => {
+            const p = npProjects[items[0].dataIndex];
+            const diff = (p.actual_np||0) - (p.costed_np||0);
+            return [`Variance: ${diff >= 0 ? '+' : ''}${fmtM(diff)}`];
+          }
+        }}
+      },
+      scales: {
+        y: { ticks: { callback: v => fmtM(v), font:{size:11} }, grid:{color:'#f0f4f5'} },
+        x: { ticks: { font:{size:11} }, grid:{display:false} }
+      }
+    }
+  });
+
+  // Revenue vs Pipeline by Quarter
+  const quarters = ['Q1 (March, April, May)','Q2 (June, July, Aug)','Q3 (Sept, Oct, Nov)','Q4 (Dec, Jan, Feb)'];
+  const qLabels = ['Q1','Q2','Q3','Q4'];
+  const qConfirmed = quarters.map(q => s.confirmed.filter(p=>p.quarter===q).reduce((a,p)=>a+(p.total_income||p.proj_value||0),0));
+  const qPipeline = quarters.map(q => s.pipeline.filter(p=>p.quarter===q).reduce((a,p)=>a+(p.proj_value||0),0));
+  charts.quarter = new Chart(document.getElementById('chartQuarter'), {
+    type: 'bar',
+    data: {
+      labels: qLabels,
+      datasets: [
+        { label: 'Confirmed Revenue', data: qConfirmed, backgroundColor: pColor, borderRadius: 4 },
+        { label: 'Pipeline Value', data: qPipeline, backgroundColor: oColor, borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels:{font:{size:11},boxWidth:12} },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${fmtM(ctx.raw)}` } }
+      },
+      scales: {
+        y: { ticks: { callback: v => fmtM(v), font:{size:11} }, grid:{color:'#f0f4f5'} },
+        x: { ticks: { font:{size:11} }, grid:{display:false} }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────
+//  PROJECT TABLE
+// ─────────────────────────────────────────
+function switchTab(tab) { activeTab = tab; const s = stats(activeFY); renderTable(s); document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.textContent.startsWith(tab.charAt(0).toUpperCase()+tab.slice(1)))); }
+
+function filterProjects() { renderTable(stats(activeFY)); }
+
+function confirmedTableHTML(list) {
+  if (!list.length) return '';
+  return `
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Project</th><th>Proj #</th><th>Quarter</th><th>Location</th><th>Lead Source</th>
+        <th>PV kWp</th><th>BESS kWh</th><th>Contract Value</th><th>Budgeted NP</th><th>Actual NP</th><th>Variance</th><th>NP %</th><th>PM+Eng</th><th></th>
+      </tr></thead>
+      <tbody>
+      ${list.map(p => {
+        const variance = p.under_over;
+        const npPct = p.actual_np_pct || p.costed_np_margin;
+        return `<tr>
+          <td><strong>${p.name}</strong></td>
+          <td style="color:var(--grey-blue)">${p.proj_num||'—'}</td>
+          <td>${p.quarter.split(' ')[0]}</td>
+          <td>${p.location ? `<span class="badge badge-location">${p.location}</span>` : '—'}</td>
+          <td style="font-size:12px">${p.lead_source||'—'}</td>
+          <td>${p.pv_kw ? p.pv_kw.toLocaleString('en-ZA') : '—'}</td>
+          <td>${p.bess_kwh ? p.bess_kwh.toLocaleString('en-ZA') : '—'}</td>
+          <td>${fmtM(p.proj_value)}</td>
+          <td>${fmtM(p.costed_np)}</td>
+          <td class="${(p.actual_np||0) >= (p.costed_np||0) ? 'np-positive' : 'np-negative'}">${fmtM(p.actual_np)}</td>
+          <td class="${variance >= 0 ? 'variance-over' : 'variance-under'}">${variance != null ? (variance >= 0 ? '+' : '') + fmtM(variance) : '—'}</td>
+          <td class="${(npPct||0) >= 15 ? 'np-positive' : ''}">${fmtPct(npPct)}</td>
+          <td>${fmtM(p.pm_eng)}</td>
+          <td style="white-space:nowrap">
+            <button class="btn-icon" title="Edit" onclick="editProject('${p.id}')">✏️</button>
+            <button class="btn-icon" title="Delete" onclick="openDelete('${p.id}','${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+          </td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function pipelineTableHTML(list) {
+  if (!list.length) return '';
+  return `
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Pipeline Project</th><th>Quarter</th><th>Location</th><th>Lead Source</th>
+        <th>PV kWp</th><th>BESS kWh</th><th>Est. Value</th><th>Win Prob</th><th>Weighted Value</th><th></th>
+      </tr></thead>
+      <tbody>
+      ${list.map(p => `<tr>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.quarter.split(' ')[0]}</td>
+        <td>${p.location ? `<span class="badge badge-location">${p.location}</span>` : '—'}</td>
+        <td style="font-size:12px">${p.lead_source||'—'}</td>
+        <td>${p.pv_kw ? p.pv_kw.toLocaleString('en-ZA') : '—'}</td>
+        <td>${p.bess_kwh ? p.bess_kwh.toLocaleString('en-ZA') : '—'}</td>
+        <td>${fmtM(p.proj_value)}</td>
+        <td>${p.win_prob != null ? p.win_prob+'%' : '—'}</td>
+        <td>${fmtM((p.proj_value||0)*(p.win_prob||50)/100)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-icon" title="Edit" onclick="editProject('${p.id}')">✏️</button>
+          <button class="btn-icon" title="Delete" onclick="openDelete('${p.id}','${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+        </td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderTable(s) {
+  const search = (document.getElementById('searchInput')||{value:''}).value.toLowerCase();
+  const leadFilter = (document.getElementById('filterLead')||{value:''}).value;
+
+  const applyFilters = list => {
+    let r = list;
+    if (search) r = r.filter(p => p.name.toLowerCase().includes(search) || (p.proj_num||'').toLowerCase().includes(search));
+    if (leadFilter) r = r.filter(p => p.lead_source === leadFilter);
+    return r;
+  };
+
+  const wrap = document.getElementById('projectTable');
+  if (!wrap) return;
+
+  let html = '';
+
+  if (activeTab === 'confirmed') {
+    const list = applyFilters(s.confirmed);
+    html = list.length ? confirmedTableHTML(list) : `<div class="empty"><div class="empty-icon">📋</div><div>No confirmed projects</div></div>`;
+  } else if (activeTab === 'pipeline') {
+    const list = applyFilters(s.pipeline);
+    html = list.length ? pipelineTableHTML(list) : `<div class="empty"><div class="empty-icon">📋</div><div>No pipeline projects</div></div>`;
+  } else {
+    // All tab — show confirmed then pipeline
+    const cList = applyFilters(s.confirmed);
+    const pList = applyFilters(s.pipeline);
+    if (!cList.length && !pList.length) {
+      html = `<div class="empty"><div class="empty-icon">📋</div><div>No projects found</div></div>`;
+    } else {
+      if (cList.length) html += `<div style="margin-bottom:${pList.length?'16px':'0'}">${confirmedTableHTML(cList)}</div>`;
+      if (pList.length) html += pipelineTableHTML(pList);
+    }
+  }
+
+  wrap.innerHTML = html;
+}
+
+// ─────────────────────────────────────────
+//  ADD / EDIT PROJECT
+// ─────────────────────────────────────────
+function buildMonthlyInputs(values) {
+  return MONTHS.map(m => `
+    <div>
+      <div class="month-label">${m}</div>
+      <input type="number" id="fm_${m}" placeholder="0" min="0" step="1000" value="${values && values[m] ? values[m] : ''}">
+    </div>
+  `).join('');
+}
+
+function openAddProject() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add Project — ' + activeFY;
+  clearForm();
+  document.getElementById('monthlyInputs').innerHTML = buildMonthlyInputs({});
+  openModal('projectModal');
+}
+
+function editProject(id) {
+  const p = db[activeFY].projects.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Project';
+  document.getElementById('f_name').value = p.name || '';
+  document.getElementById('f_proj_num').value = p.proj_num || '';
+  document.getElementById('f_status').value = p.status || 'pipeline';
+  document.getElementById('f_proj_value').value = p.proj_value || '';
+  document.getElementById('f_quarter').value = p.quarter || 'Q1 (March, April, May)';
+  document.getElementById('f_location').value = p.location || '';
+  document.getElementById('f_lead_source').value = p.lead_source || '';
+  document.getElementById('f_pv_kw').value = p.pv_kw || '';
+  document.getElementById('f_bess_kwh').value = p.bess_kwh || '';
+  document.getElementById('f_win_prob').value = p.win_prob || '';
+  document.getElementById('f_costed_np').value = p.costed_np || '';
+  document.getElementById('f_actual_np').value = p.actual_np || '';
+  document.getElementById('f_pm_eng').value = p.pm_eng || '';
+  document.getElementById('f_commissioning').value = p.commissioning_cost || '';
+  document.getElementById('monthlyInputs').innerHTML = buildMonthlyInputs(p.monthly || {});
+  openModal('projectModal');
+}
+
+function clearForm() {
+  ['f_name','f_proj_num','f_proj_value','f_location','f_win_prob','f_costed_np','f_actual_np','f_pm_eng','f_commissioning'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('f_status').value = 'pipeline';
+  document.getElementById('f_quarter').value = 'Q1 (March, April, May)';
+  document.getElementById('f_lead_source').value = '';
+  document.getElementById('f_pv_kw').value = '';
+  document.getElementById('f_bess_kwh').value = '';
+}
+
+function saveProject() {
+  const name = document.getElementById('f_name').value.trim();
+  const proj_value = parseFloat(document.getElementById('f_proj_value').value);
+  if (!name) { alert('Project name is required.'); return; }
+  if (!proj_value || proj_value <= 0) { alert('Project value is required.'); return; }
+
+  const monthly = {};
+  MONTHS.forEach(m => {
+    const v = parseFloat(document.getElementById('fm_'+m)?.value);
+    if (v > 0) monthly[m] = v;
+  });
+
+  const actual_np = parseFloat(document.getElementById('f_actual_np').value) || null;
+  const costed_np = parseFloat(document.getElementById('f_costed_np').value) || null;
+  const status = document.getElementById('f_status').value;
+  const total_income = Object.values(monthly).reduce((a,b)=>a+b,0) || (status==='confirmed' ? proj_value : 0);
+  const actual_np_pct = actual_np && total_income ? parseFloat(((actual_np/total_income)*100).toFixed(2)) : null;
+  const costed_np_margin = costed_np && proj_value ? parseFloat(((costed_np/proj_value)*100).toFixed(2)) : null;
+  const under_over = (actual_np != null && costed_np != null) ? actual_np - costed_np : null;
+
+  const project = {
+    id: editingId || genId(),
+    name,
+    proj_num: document.getElementById('f_proj_num').value.trim(),
+    proj_value,
+    status,
+    quarter: document.getElementById('f_quarter').value,
+    location: document.getElementById('f_location').value.trim(),
+    lead_source: document.getElementById('f_lead_source').value,
+    pv_kw: parseFloat(document.getElementById('f_pv_kw').value) || 0,
+    bess_kwh: parseFloat(document.getElementById('f_bess_kwh').value) || 0,
+    win_prob: parseFloat(document.getElementById('f_win_prob').value) || null,
+    monthly,
+    total_income,
+    actual_np,
+    actual_np_pct,
+    costed_np,
+    costed_np_margin,
+    under_over,
+    pm_eng: parseFloat(document.getElementById('f_pm_eng').value) || null,
+    commissioning_cost: parseFloat(document.getElementById('f_commissioning').value) || null,
+  };
+
+  if (!db[activeFY]) db[activeFY] = { label: activeFY, period: '', projects: [] };
+  if (editingId) {
+    const idx = db[activeFY].projects.findIndex(p => p.id === editingId);
+    if (idx >= 0) db[activeFY].projects[idx] = project;
+  } else {
+    db[activeFY].projects.push(project);
+  }
+
+  saveDB();
+  closeModal('projectModal');
+  renderAll();
+}
+
+// ─────────────────────────────────────────
+//  DELETE
+// ─────────────────────────────────────────
+function openDelete(id, name) {
+  deleteId = id;
+  document.getElementById('deleteProjectName').textContent = name;
+  openModal('deleteModal');
+}
+function confirmDelete() {
+  if (!deleteId) return;
+  db[activeFY].projects = db[activeFY].projects.filter(p => p.id !== deleteId);
+  deleteId = null;
+  saveDB(); closeModal('deleteModal'); renderAll();
+}
+
+// ─────────────────────────────────────────
+//  FY MANAGEMENT
+// ─────────────────────────────────────────
+function openAddFY() { document.getElementById('f_fy_name').value = ''; document.getElementById('f_fy_period').value = ''; openModal('fyModal'); }
+function saveFY() {
+  const name = document.getElementById('f_fy_name').value.trim().toUpperCase();
+  const period = document.getElementById('f_fy_period').value.trim();
+  if (!name) { alert('FY label is required (e.g. FY28)'); return; }
+  if (db[name]) { alert(`${name} already exists.`); return; }
+  db[name] = { label: name, period, projects: [] };
+  activeFY = name;
+  saveDB(); closeModal('fyModal'); renderAll();
+}
+function deleteFY(fy) {
+  if (!confirm(`Delete ${fy} and all its projects? This cannot be undone.`)) return;
+  delete db[fy];
+  activeFY = Object.keys(db)[0] || 'FY27';
+  saveDB(); renderAll();
+}
+
+// ─────────────────────────────────────────
+//  MODAL HELPERS
+// ─────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ─────────────────────────────────────────
+//  EXPORT
+// ─────────────────────────────────────────
+function exportData() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'FE_Dashboard_Data.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────
+loadDB().then(renderAll);
+</script>
+</body>
+</html>
