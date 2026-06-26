@@ -995,6 +995,7 @@ function pipelineTableHTML(list) {
         <td>${p.win_prob != null ? p.win_prob+'%' : '—'}</td>
         <td>${fmtM((p.proj_value||0)*(p.win_prob||50)/100)}</td>
         <td style="white-space:nowrap">
+          <button class="btn btn-green btn-sm" title="Convert to confirmed deal" onclick="convertToDeal('${p.id}')" style="padding:4px 9px;margin-right:4px">✓ Convert to Deal</button>
           <button class="btn-icon" title="Edit" onclick="editProject('${p.id}')">✏️</button>
           <button class="btn-icon" title="Delete" onclick="openDelete('${p.id}','${p.name.replace(/'/g,"\\'")}')">🗑️</button>
         </td>
@@ -1082,6 +1083,15 @@ function editProject(id) {
   document.getElementById('f_commissioning').value = p.commissioning_cost || '';
   document.getElementById('monthlyInputs').innerHTML = buildMonthlyInputs(p.monthly || {});
   openModal('projectModal');
+}
+
+function convertToDeal(id) {
+  const p = db[activeFY].projects.find(x => x.id === id);
+  if (!p) return;
+  editProject(id);                                                   // load all fields into the modal
+  document.getElementById('modalTitle').textContent = 'Convert to Deal — ' + p.name;
+  document.getElementById('f_status').value = 'confirmed';           // flip pipeline → confirmed
+  document.getElementById('f_win_prob').value = '';                  // win probability no longer applies
 }
 
 function clearForm() {
