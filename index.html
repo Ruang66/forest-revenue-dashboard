@@ -39,7 +39,7 @@
   }
   .header-logo { display: flex; align-items: center; gap: 12px; }
   .header-logo svg { width: 32px; height: 32px; }
-  .header-logo img { height: 34px; display: block; }
+  .header-logo img { height: 46px; display: block; }
   .header-logo .divider { width: 1px; height: 26px; background: var(--grey-blue); opacity: 0.4; }
   .header-title { color: var(--white); font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
   .header-subtitle { color: var(--grey-blue); font-size: 12px; margin-top: 1px; }
@@ -475,7 +475,7 @@ const SEED = {
 //  STATE
 // ─────────────────────────────────────────
 let db = {};
-let activeFY = "FY26";
+let activeFY = "FY27";
 let activeTab = "confirmed";
 let editingId = null;
 let deleteId = null;
@@ -1218,7 +1218,10 @@ function exportData() {
 // ─────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────
-loadDB().then(renderAll);
+loadDB().then(() => {
+  if (!db[activeFY]) activeFY = Object.keys(db)[0] || activeFY;   // fall back if FY27 was removed
+  renderAll();
+});
 </script>
 </body>
 </html>

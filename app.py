@@ -49,7 +49,7 @@ LOGIN_PAGE = """<!doctype html>
   .card {{ background:#114d5d; padding:40px 36px; border-radius:14px; width:340px;
           box-shadow:0 20px 50px rgba(0,0,0,.45); }}
   .logo {{ display:flex; justify-content:center; margin-bottom:14px; }}
-  .logo img {{ height:54px; }}
+  .logo img {{ height:96px; }}
   .tagline {{ text-align:center; color:#8ca6ae; font-size:12px; letter-spacing:.5px;
              text-transform:uppercase; margin-bottom:22px; }}
   label {{ display:block; font-size:13px; color:#cdd9dc; margin:14px 0 6px; }}
