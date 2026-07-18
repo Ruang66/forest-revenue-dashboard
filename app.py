@@ -17,7 +17,7 @@ APP_USERNAME = os.environ.get("FE_USERNAME", "Forest")
 APP_PASSWORD = os.environ.get("FE_PASSWORD", "F@rest1!136")
 SESSION_SECRET = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
 INDEX_PATH = os.path.join(os.path.dirname(__file__), "index.html")
-LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.svg")
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
 
 app = FastAPI(title="FE Revenue Dashboard")
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=60 * 60 * 24 * 30)
@@ -49,7 +49,7 @@ LOGIN_PAGE = """<!doctype html>
   .card {{ background:#114d5d; padding:40px 36px; border-radius:14px; width:340px;
           box-shadow:0 20px 50px rgba(0,0,0,.45); }}
   .logo {{ display:flex; justify-content:center; margin-bottom:14px; }}
-  .logo img {{ height:96px; }}
+  .logo img {{ height:72px; }}
   .tagline {{ text-align:center; color:#8ca6ae; font-size:12px; letter-spacing:.5px;
              text-transform:uppercase; margin-bottom:22px; }}
   label {{ display:block; font-size:13px; color:#cdd9dc; margin:14px 0 6px; }}
@@ -63,7 +63,7 @@ LOGIN_PAGE = """<!doctype html>
 </style></head>
 <body>
   <form class="card" method="post" action="/login">
-    <div class="logo"><img src="/logo.svg" alt="Forest Energy"></div>
+    <div class="logo"><img src="/logo.png" alt="Forest Energy"></div>
     <div class="tagline">Revenue Dashboard</div>
     <label>Username</label>
     <input name="username" autocomplete="username" autofocus required>
@@ -124,9 +124,9 @@ async def post_data(request: Request):
     return {"ok": True}
 
 
-@app.get("/logo.svg")
+@app.get("/logo.png")
 def logo():
-    return FileResponse(LOGO_PATH, media_type="image/svg+xml")
+    return FileResponse(LOGO_PATH, media_type="image/png")
 
 
 @app.get("/health")
